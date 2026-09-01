@@ -1,203 +1,334 @@
 import streamlit as st
 from groq import Groq
 
-# =========================
+# ============================================================
+# GPT-OSS 20B CHATBOT
+# STREAMLIT + GROQ API
+# ============================================================
+
+MODEL = "openai/gpt-oss-20b"
+
+SYSTEM_PROMPT = """
+You are a helpful, intelligent and friendly AI assistant.
+
+Rules:
+- Answer questions accurately.
+- Explain difficult topics clearly.
+- Use examples when useful.
+- Do not make up information.
+- Remember the conversation context.
+- Be concise unless the user asks for detailed information.
+"""
+
+# ============================================================
 # PAGE CONFIGURATION
-# =========================
+# ============================================================
 
 st.set_page_config(
-    page_title="AI Assistant",
+    page_title="GPT-OSS 20B Chatbot",
     page_icon="🤖",
     layout="wide"
 )
 
-# =========================
-# GROQ CLIENT
-# =========================
+# ============================================================
+# CUSTOM CSS
+# ============================================================
 
-client = Groq(
-    api_key=st.secrets["GROQ_API_KEY"]
-)
+st.markdown("""
+<style>
 
-MODEL = "openai/gpt-oss-20b"
+.main {
+    background-color: #0e1117;
+}
 
-# =========================
-# AI SYSTEM PROMPT
-# =========================
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
 
-SYSTEM_PROMPT = """
-You are a highly capable general-purpose AI assistant.
+.title {
+    font-size: 40px;
+    font-weight: 700;
+    margin-bottom: 0px;
+}
 
-You can help users with:
+.subtitle {
+    font-size: 16px;
+    color: #9ca3af;
+    margin-bottom: 25px;
+}
 
-- General questions
-- Mathematics
-- Calculations
-- Logical reasoning
-- Python
-- Java
-- C
-- C++
-- JavaScript
-- HTML
-- CSS
-- SQL
-- Programming
-- Code debugging
-- Code explanation
-- Data analysis
-- Academic subjects
-- Engineering subjects
-- Writing
-- Rewriting
-- Summarization
-- Translation
-- Technical explanations
-- Step-by-step problem solving
-- Project ideas
-- Project documentation
+.chat-box {
+    border-radius: 12px;
+}
 
-Rules:
+</style>
+""", unsafe_allow_html=True)
 
-1. Give clear and accurate answers.
-2. For mathematical problems, show the calculation.
-3. For programming problems, provide complete and clean code.
-4. Explain code when useful.
-5. For academic questions, explain in simple language.
-6. For complex questions, give structured answers.
-7. Do not invent facts.
-8. If you don't know something, say so.
-9. Keep simple answers concise.
-10. Give detailed answers when the user asks for detail.
-"""
-
-# =========================
-# SESSION MEMORY
-# =========================
+# ============================================================
+# SESSION STATE
+# ============================================================
 
 if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    st.session_state.messages = [
-        {
-            "role": "system",
-            "content": SYSTEM_PROMPT
-        }
-    ]
+# ============================================================
+# HEADER
+# ============================================================
 
-# =========================
+st.markdown(
+    '<div class="title">🤖 GPT-OSS 20B Chatbot</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div class="subtitle">⚡ Powered by Groq</div>',
+    unsafe_allow_html=True
+)
+
+# ============================================================
 # SIDEBAR
-# =========================
+# ============================================================
 
 with st.sidebar:
 
-    st.title("🤖 AI Assistant")
+    st.header("⚙️ Settings")
 
-    st.write("Powered by Groq")
+    # --------------------------------------------------------
+    # API KEY
+    # --------------------------------------------------------
+
+    api_key = st.text_input(
+        "Groq API Key",
+        type="password",
+        placeholder="gsk_..."
+    )
+
+    st.caption(
+        "Your API key is used only for this session."
+    )
 
     st.divider()
 
-    st.subheader("Capabilities")
+    # --------------------------------------------------------
+    # TEMPERATURE
+    # --------------------------------------------------------
 
-    st.write("💬 General Chat")
-    st.write("🧮 Mathematics")
-    st.write("💻 Programming")
-    st.write("🐛 Debugging")
-    st.write("📊 Data Analysis")
-    st.write("📚 Education")
-    st.write("✍️ Writing")
-    st.write("📝 Summarization")
+    temperature = st.slider(
+        "🌡️ Temperature",
+        min_value=0.0,
+        max_value=1.5,
+        value=0.7,
+        step=0.1
+    )
+
+    # --------------------------------------------------------
+    # REASONING
+    # --------------------------------------------------------
+
+    reasoning = st.selectbox(
+        "🧠 Reasoning Effort",
+        options=[
+            "low",
+            "medium",
+            "high"
+        ],
+        index=1
+    )
 
     st.divider()
 
-    if st.button("🗑️ Clear Conversation", use_container_width=True):
+    # --------------------------------------------------------
+    # MODEL INFO
+    # --------------------------------------------------------
 
-        st.session_state.messages = [
+    st.markdown("### 🧠 Model")
+
+    st.code(
+        "openai/gpt-oss-20b"
+    )
+
+    st.markdown("### ⚡ Provider")
+
+    st.write("Groq API")
+
+    st.markdown("### 💬 Type")
+
+    st.write("Normal AI Chatbot")
+
+    st.markdown("### 🧠 Memory")
+
+    st.write("Conversation History")
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # CLEAR CHAT
+    # --------------------------------------------------------
+
+    if st.button(
+        "🗑️ Clear Conversation",
+        use_container_width=True
+    ):
+        st.session_state.messages = []
+        st.rerun()
+
+# ============================================================
+# DISPLAY PREVIOUS MESSAGES
+# ============================================================
+
+for message in st.session_state.messages:
+
+    with st.chat_message(message["role"]):
+
+        st.markdown(
+            message["content"]
+        )
+
+# ============================================================
+# CHAT INPUT
+# ============================================================
+
+user_message = st.chat_input(
+    "Type your message..."
+)
+
+# ============================================================
+# PROCESS MESSAGE
+# ============================================================
+
+if user_message:
+
+    # --------------------------------------------------------
+    # CHECK API KEY
+    # --------------------------------------------------------
+
+    if not api_key.strip():
+
+        st.error(
+            "⚠️ Please enter your Groq API key in the sidebar."
+        )
+
+        st.stop()
+
+    # --------------------------------------------------------
+    # ADD USER MESSAGE
+    # --------------------------------------------------------
+
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_message
+        }
+    )
+
+    # Display user message
+    with st.chat_message("user"):
+
+        st.markdown(
+            user_message
+        )
+
+    # --------------------------------------------------------
+    # CREATE GROQ CLIENT
+    # --------------------------------------------------------
+
+    try:
+
+        client = Groq(
+            api_key=api_key.strip()
+        )
+
+        # ----------------------------------------------------
+        # BUILD MESSAGE HISTORY
+        # ----------------------------------------------------
+
+        messages = [
             {
                 "role": "system",
                 "content": SYSTEM_PROMPT
             }
         ]
 
-        st.rerun()
+        for message in st.session_state.messages:
 
-# =========================
-# MAIN UI
-# =========================
+            messages.append(
+                {
+                    "role": message["role"],
+                    "content": message["content"]
+                }
+            )
 
-st.title("🤖 Universal AI Assistant")
+        # ----------------------------------------------------
+        # ASSISTANT RESPONSE
+        # ----------------------------------------------------
 
-st.caption(
-    "Ask questions, solve problems, write code, calculate, learn and more."
-)
+        with st.chat_message("assistant"):
 
-# =========================
-# DISPLAY PREVIOUS MESSAGES
-# =========================
+            response_placeholder = st.empty()
 
-for message in st.session_state.messages:
-
-    if message["role"] == "system":
-        continue
-
-    with st.chat_message(message["role"]):
-
-        st.markdown(message["content"])
-
-# =========================
-# USER INPUT
-# =========================
-
-user_input = st.chat_input(
-    "Ask me anything..."
-)
-
-# =========================
-# PROCESS USER MESSAGE
-# =========================
-
-if user_input:
-
-    # Display user message
-    with st.chat_message("user"):
-
-        st.markdown(user_input)
-
-    # Save user message
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": user_input
-        }
-    )
-
-    # Generate AI response
-    with st.chat_message("assistant"):
-
-        with st.spinner("Thinking..."):
-
-            try:
+            with st.spinner("Thinking..."):
 
                 response = client.chat.completions.create(
+
                     model=MODEL,
-                    messages=st.session_state.messages,
-                    temperature=0.3,
-                    max_tokens=4096
+
+                    messages=messages,
+
+                    temperature=float(
+                        temperature
+                    ),
+
+                    reasoning_effort=reasoning,
+
+                    max_completion_tokens=4096
                 )
 
-                answer = response.choices[0].message.content
-
-                st.markdown(answer)
-
-                # Save AI response
-                st.session_state.messages.append(
-                    {
-                        "role": "assistant",
-                        "content": answer
-                    }
+                answer = (
+                    response.choices[0]
+                    .message
+                    .content
                 )
 
-            except Exception as e:
+                if not answer:
 
-                st.error(
-                    f"Something went wrong: {str(e)}"
-                )
+                    answer = (
+                        "I couldn't generate a response."
+                    )
+
+            response_placeholder.markdown(
+                answer
+            )
+
+        # ----------------------------------------------------
+        # SAVE ASSISTANT RESPONSE
+        # ----------------------------------------------------
+
+        st.session_state.messages.append(
+            {
+                "role": "assistant",
+                "content": answer
+            }
+        )
+
+    # --------------------------------------------------------
+    # ERROR HANDLING
+    # --------------------------------------------------------
+
+    except Exception as e:
+
+        error_message = (
+            "❌ Groq API Error\n\n"
+            f"{str(e)}"
+        )
+
+        with st.chat_message("assistant"):
+
+            st.error(
+                error_message
+            )
+
+        # Remove the user message if request failed
+        if st.session_state.messages:
+
+            st.session_state.messages.pop()
