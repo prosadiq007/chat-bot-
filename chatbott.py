@@ -1,259 +1,196 @@
-import gradio as gr
+import streamlit as st
 from groq import Groq
-from getpass import getpass
-import pandas as pd
-import os
 
-# ==========================================
-# GROQ API
-# ==========================================
+# ==============================
+# PAGE CONFIG
+# ==============================
 
-api_key = getpass("Enter your Groq API Key: ")
+st.set_page_config(
+    page_title="Universal AI Assistant",
+    page_icon="🤖",
+    layout="centered"
+)
+
+# ==============================
+# API KEY
+# ==============================
+
+api_key = st.secrets["GROQ_API_KEY"]
 
 client = Groq(api_key=api_key)
 
 MODEL = "openai/gpt-oss-20b"
 
 
-# ==========================================
+# ==============================
 # SYSTEM PROMPT
-# ==========================================
+# ==============================
 
 SYSTEM_PROMPT = """
 You are a powerful general-purpose AI assistant.
 
-You can help users with:
+You can help with:
 
 - General questions
 - Mathematics and calculations
 - Programming
-- Python, Java, C, C++, SQL, HTML, CSS and JavaScript
-- Debugging code
+- Python
+- Java
+- C
+- C++
+- SQL
+- HTML
+- CSS
+- JavaScript
+- Debugging
 - Data analysis
-- CSV and Excel analysis
 - Academic questions
+- Writing
 - Summarization
-- Writing and rewriting
 - Technical explanations
 - Step-by-step problem solving
 
-Be accurate, helpful and fast.
+Be helpful, accurate and clear.
 
-For calculations, show the calculation clearly.
+For calculations, show the steps.
 
 For programming questions, provide clean working code.
 
-For difficult concepts, explain them in simple language.
-
-When analyzing data, identify useful patterns, statistics,
-missing values and important observations.
-
-Never invent information when the required information is unavailable.
+For difficult topics, explain them simply.
 """
 
 
-# ==========================================
-# FILE ANALYSIS
-# ==========================================
+# ==============================
+# TITLE
+# ==============================
 
-def analyze_file(file_path):
+st.title("🤖 Universal AI Assistant")
 
-    if file_path is None:
-        return ""
-
-    try:
-
-        extension = os.path.splitext(file_path)[1].lower()
-
-        if extension == ".csv":
-            df = pd.read_csv(file_path)
-
-        elif extension in [".xlsx", ".xls"]:
-            df = pd.read_excel(file_path)
-
-        else:
-            return "The uploaded file is not CSV or Excel."
-
-        result = f"""
-FILE INFORMATION
-
-Rows: {df.shape[0]}
-Columns: {df.shape[1]}
-
-Column Names:
-{list(df.columns)}
-
-Data Types:
-{df.dtypes.to_string()}
-
-Missing Values:
-{df.isnull().sum().to_string()}
-
-Statistics:
-{df.describe(include="all").to_string()}
-
-First 10 Rows:
-{df.head(10).to_string()}
-"""
-
-        return result
-
-    except Exception as e:
-
-        return f"Could not analyze file: {str(e)}"
+st.caption(
+    "⚡ Powered by Groq | 💬 Chat | 🧮 Math | 💻 Coding | 📊 Analysis"
+)
 
 
-# ==========================================
-# CHATBOT FUNCTION
-# ==========================================
+# ==============================
+# CHAT MEMORY
+# ==============================
 
-def chatbot(message, history, file):
+if "messages" not in st.session_state:
 
-    messages = [
+    st.session_state.messages = [
         {
             "role": "system",
             "content": SYSTEM_PROMPT
         }
     ]
 
-    # ======================================
-    # ADD CHAT HISTORY
-    # ======================================
 
-    for item in history:
+# ==============================
+# DISPLAY CHAT
+# ==============================
 
-        # New Gradio format
-        if isinstance(item, dict):
+for message in st.session_state.messages:
 
-            role = item.get("role")
-            content = item.get("content")
+    if message["role"] == "system":
+        continue
 
-            if role in ["user", "assistant"]:
+    with st.chat_message(message["role"]):
 
-                if isinstance(content, str):
-
-                    messages.append({
-                        "role": role,
-                        "content": content
-                    })
-
-        # Old Gradio format
-        elif isinstance(item, (list, tuple)):
-
-            if len(item) >= 2:
-
-                user_message = item[0]
-                assistant_message = item[1]
-
-                if user_message:
-
-                    messages.append({
-                        "role": "user",
-                        "content": str(user_message)
-                    })
-
-                if assistant_message:
-
-                    messages.append({
-                        "role": "assistant",
-                        "content": str(assistant_message)
-                    })
+        st.markdown(message["content"])
 
 
-    # ======================================
-    # FILE ANALYSIS
-    # ======================================
+# ==============================
+# USER INPUT
+# ==============================
 
-    if file is not None:
-
-        file_data = analyze_file(file)
-
-        messages.append({
-            "role": "system",
-            "content": f"""
-The user uploaded a data file.
-
-Here is the file information:
-
-{file_data}
-
-Use this information when answering questions about the file.
-"""
-        })
-
-
-    # ======================================
-    # USER MESSAGE
-    # ======================================
-
-    messages.append({
-        "role": "user",
-        "content": message
-    })
-
-
-    # ======================================
-    # GROQ
-    # ======================================
-
-    try:
-
-        response = client.chat.completions.create(
-
-            model=MODEL,
-
-            messages=messages,
-
-            temperature=0.3,
-
-            max_tokens=4096
-
-        )
-
-        answer = response.choices[0].message.content
-
-        return answer
-
-    except Exception as e:
-
-        return f"❌ Groq Error: {str(e)}"
-
-
-# ==========================================
-# UI
-# ==========================================
-
-file_upload = gr.File(
-    label="📁 Upload CSV / Excel",
-    file_types=[".csv", ".xlsx", ".xls"],
-    type="filepath"
+user_input = st.chat_input(
+    "Ask me anything..."
 )
 
 
-demo = gr.ChatInterface(
+# ==============================
+# CHAT RESPONSE
+# ==============================
 
-    fn=chatbot,
+if user_input:
 
-    additional_inputs=[file_upload],
+    # Display user message
 
-    title="🤖 Universal AI Assistant",
+    with st.chat_message("user"):
 
-    description="""
-    ⚡ Powered by Groq
+        st.markdown(user_input)
 
-    💬 Chat | 🧮 Calculations | 💻 Coding | 📊 Data Analysis |
-    📚 Study | ✍️ Writing | 🧠 Problem Solving
-    """,
-
-    textbox=gr.Textbox(
-        placeholder="Ask me anything...",
-        container=True
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_input
+        }
     )
-)
 
 
-# ==========================================
-# LAUNCH
-# ==========================================
+    # Generate response
 
-demo.launch(share=True)
+    with st.chat_message("assistant"):
+
+        with st.spinner("Thinking..."):
+
+            try:
+
+                response = client.chat.completions.create(
+
+                    model=MODEL,
+
+                    messages=st.session_state.messages,
+
+                    temperature=0.3,
+
+                    max_tokens=4096
+                )
+
+                answer = response.choices[0].message.content
+
+                st.markdown(answer)
+
+                st.session_state.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": answer
+                    }
+                )
+
+            except Exception as e:
+
+                st.error(f"Error: {e}")
+
+
+# ==============================
+# SIDEBAR
+# ==============================
+
+with st.sidebar:
+
+    st.header("⚙️ Settings")
+
+    if st.button("🗑️ Clear Chat"):
+
+        st.session_state.messages = [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT
+            }
+        ]
+
+        st.rerun()
+
+    st.divider()
+
+    st.write("### Capabilities")
+
+    st.write("💬 General Chat")
+    st.write("🧮 Mathematics")
+    st.write("💻 Programming")
+    st.write("🐛 Debugging")
+    st.write("📚 Education")
+    st.write("📊 Data Analysis")
+    st.write("✍️ Writing")
+    st.write("📝 Summarization")
