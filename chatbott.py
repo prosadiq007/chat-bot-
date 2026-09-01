@@ -1,79 +1,79 @@
 import streamlit as st
 from groq import Groq
 
-# ==============================
-# PAGE CONFIG
-# ==============================
+# =========================
+# PAGE CONFIGURATION
+# =========================
 
 st.set_page_config(
-    page_title="Universal AI Assistant",
+    page_title="AI Assistant",
     page_icon="🤖",
-    layout="centered"
+    layout="wide"
 )
 
-# ==============================
-# API KEY
-# ==============================
+# =========================
+# GROQ CLIENT
+# =========================
 
-api_key = st.secrets["GROQ_API_KEY"]
-
-client = Groq(api_key=api_key)
+client = Groq(
+    api_key=st.secrets["GROQ_API_KEY"]
+)
 
 MODEL = "openai/gpt-oss-20b"
 
-
-# ==============================
-# SYSTEM PROMPT
-# ==============================
+# =========================
+# AI SYSTEM PROMPT
+# =========================
 
 SYSTEM_PROMPT = """
-You are a powerful general-purpose AI assistant.
+You are a highly capable general-purpose AI assistant.
 
-You can help with:
+You can help users with:
 
 - General questions
-- Mathematics and calculations
-- Programming
+- Mathematics
+- Calculations
+- Logical reasoning
 - Python
 - Java
 - C
 - C++
-- SQL
+- JavaScript
 - HTML
 - CSS
-- JavaScript
-- Debugging
+- SQL
+- Programming
+- Code debugging
+- Code explanation
 - Data analysis
-- Academic questions
+- Academic subjects
+- Engineering subjects
 - Writing
+- Rewriting
 - Summarization
+- Translation
 - Technical explanations
 - Step-by-step problem solving
+- Project ideas
+- Project documentation
 
-Be helpful, accurate and clear.
+Rules:
 
-For calculations, show the steps.
-
-For programming questions, provide clean working code.
-
-For difficult topics, explain them simply.
+1. Give clear and accurate answers.
+2. For mathematical problems, show the calculation.
+3. For programming problems, provide complete and clean code.
+4. Explain code when useful.
+5. For academic questions, explain in simple language.
+6. For complex questions, give structured answers.
+7. Do not invent facts.
+8. If you don't know something, say so.
+9. Keep simple answers concise.
+10. Give detailed answers when the user asks for detail.
 """
 
-
-# ==============================
-# TITLE
-# ==============================
-
-st.title("🤖 Universal AI Assistant")
-
-st.caption(
-    "⚡ Powered by Groq | 💬 Chat | 🧮 Math | 💻 Coding | 📊 Analysis"
-)
-
-
-# ==============================
-# CHAT MEMORY
-# ==============================
+# =========================
+# SESSION MEMORY
+# =========================
 
 if "messages" not in st.session_state:
 
@@ -84,94 +84,32 @@ if "messages" not in st.session_state:
         }
     ]
 
-
-# ==============================
-# DISPLAY CHAT
-# ==============================
-
-for message in st.session_state.messages:
-
-    if message["role"] == "system":
-        continue
-
-    with st.chat_message(message["role"]):
-
-        st.markdown(message["content"])
-
-
-# ==============================
-# USER INPUT
-# ==============================
-
-user_input = st.chat_input(
-    "Ask me anything..."
-)
-
-
-# ==============================
-# CHAT RESPONSE
-# ==============================
-
-if user_input:
-
-    # Display user message
-
-    with st.chat_message("user"):
-
-        st.markdown(user_input)
-
-    st.session_state.messages.append(
-        {
-            "role": "user",
-            "content": user_input
-        }
-    )
-
-
-    # Generate response
-
-    with st.chat_message("assistant"):
-
-        with st.spinner("Thinking..."):
-
-            try:
-
-                response = client.chat.completions.create(
-
-                    model=MODEL,
-
-                    messages=st.session_state.messages,
-
-                    temperature=0.3,
-
-                    max_tokens=4096
-                )
-
-                answer = response.choices[0].message.content
-
-                st.markdown(answer)
-
-                st.session_state.messages.append(
-                    {
-                        "role": "assistant",
-                        "content": answer
-                    }
-                )
-
-            except Exception as e:
-
-                st.error(f"Error: {e}")
-
-
-# ==============================
+# =========================
 # SIDEBAR
-# ==============================
+# =========================
 
 with st.sidebar:
 
-    st.header("⚙️ Settings")
+    st.title("🤖 AI Assistant")
 
-    if st.button("🗑️ Clear Chat"):
+    st.write("Powered by Groq")
+
+    st.divider()
+
+    st.subheader("Capabilities")
+
+    st.write("💬 General Chat")
+    st.write("🧮 Mathematics")
+    st.write("💻 Programming")
+    st.write("🐛 Debugging")
+    st.write("📊 Data Analysis")
+    st.write("📚 Education")
+    st.write("✍️ Writing")
+    st.write("📝 Summarization")
+
+    st.divider()
+
+    if st.button("🗑️ Clear Conversation", use_container_width=True):
 
         st.session_state.messages = [
             {
@@ -182,15 +120,84 @@ with st.sidebar:
 
         st.rerun()
 
-    st.divider()
+# =========================
+# MAIN UI
+# =========================
 
-    st.write("### Capabilities")
+st.title("🤖 Universal AI Assistant")
 
-    st.write("💬 General Chat")
-    st.write("🧮 Mathematics")
-    st.write("💻 Programming")
-    st.write("🐛 Debugging")
-    st.write("📚 Education")
-    st.write("📊 Data Analysis")
-    st.write("✍️ Writing")
-    st.write("📝 Summarization")
+st.caption(
+    "Ask questions, solve problems, write code, calculate, learn and more."
+)
+
+# =========================
+# DISPLAY PREVIOUS MESSAGES
+# =========================
+
+for message in st.session_state.messages:
+
+    if message["role"] == "system":
+        continue
+
+    with st.chat_message(message["role"]):
+
+        st.markdown(message["content"])
+
+# =========================
+# USER INPUT
+# =========================
+
+user_input = st.chat_input(
+    "Ask me anything..."
+)
+
+# =========================
+# PROCESS USER MESSAGE
+# =========================
+
+if user_input:
+
+    # Display user message
+    with st.chat_message("user"):
+
+        st.markdown(user_input)
+
+    # Save user message
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_input
+        }
+    )
+
+    # Generate AI response
+    with st.chat_message("assistant"):
+
+        with st.spinner("Thinking..."):
+
+            try:
+
+                response = client.chat.completions.create(
+                    model=MODEL,
+                    messages=st.session_state.messages,
+                    temperature=0.3,
+                    max_tokens=4096
+                )
+
+                answer = response.choices[0].message.content
+
+                st.markdown(answer)
+
+                # Save AI response
+                st.session_state.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": answer
+                    }
+                )
+
+            except Exception as e:
+
+                st.error(
+                    f"Something went wrong: {str(e)}"
+                )
