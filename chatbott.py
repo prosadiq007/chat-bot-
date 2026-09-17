@@ -77,7 +77,7 @@ if "messages" not in st.session_state:
 # ============================================================
 
 st.markdown(
-    '<div class="title">🤖 GPT-OSS 20B Chatbot</div>',
+    '<div class="title">🤖 SADIQ's Chatbot</div>',
     unsafe_allow_html=True
 )
 
