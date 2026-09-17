@@ -25,7 +25,7 @@ Rules:
 # ============================================================
 
 st.set_page_config(
-    page_title="GPT-OSS 20B Chatbot",
+    page_title="SADIQ's Chatbot",
     page_icon="🤖",
     layout="wide"
 )
