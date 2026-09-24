@@ -1,109 +1,70 @@
-import os
 import streamlit as st
 from groq import Groq
 
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-
 
 # ============================================================
-# INTELLICHAT - RAG CHATBOT
-# STREAMLIT + GROQ API + GPT-OSS 20B
+# GPT-OSS 20B CHATBOT
+# STREAMLIT + GROQ API
 # ============================================================
 
 MODEL = "openai/gpt-oss-20b"
 
-
-# ============================================================
-# PAGE CONFIGURATION
-# ============================================================
-
-st.set_page_config(
-    page_title="IntelliChat",
-    page_icon="🤖",
-    layout="wide"
-)
-
-
-# ============================================================
-# GROQ CLIENT
-# ============================================================
-
-client = Groq(
-    api_key=st.secrets["GROQ_API_KEY"]
-)
-
-
-# ============================================================
-# SYSTEM PROMPT
-# ============================================================
-
 SYSTEM_PROMPT = """
-You are IntelliChat, a helpful, intelligent and friendly AI assistant.
+You are a helpful, intelligent and friendly AI assistant.
 
 Rules:
 - Answer questions accurately.
 - Explain difficult topics clearly.
 - Use examples when useful.
 - Do not make up information.
-- Maintain conversation context.
-- When document context is provided, use it to answer the user's question.
-- If the answer is not available in the provided document context,
-  clearly say that the information is not available in the uploaded document.
+- Remember the conversation context.
+- Be concise unless the user asks for detailed information.
 """
 
-
 # ============================================================
-# EMBEDDING MODEL
-# ============================================================
-
-@st.cache_resource
-def load_embeddings():
-
-    return HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2"
-    )
-
-
-embeddings = load_embeddings()
-
-
-# ============================================================
-# CREATE VECTOR DATABASE
+# PAGE CONFIGURATION
 # ============================================================
 
-def create_vector_database(uploaded_file):
+st.set_page_config(
+    page_title="SADIQ's Chatbot",
+    page_icon="🤖",
+    layout="wide"
+)
 
-    file_path = "uploaded_document.pdf"
+# ============================================================
+# CUSTOM CSS
+# ============================================================
 
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
+st.markdown("""
+<style>
 
-    # Load PDF
-    loader = PyPDFLoader(file_path)
-    documents = loader.load()
+.main {
+    background-color: #0e1117;
+}
 
-    # Split document into chunks
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=150
-    )
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
 
-    chunks = text_splitter.split_documents(documents)
+.title {
+    font-size: 40px;
+    font-weight: 700;
+    margin-bottom: 0px;
+}
 
-    # Create embeddings and FAISS vector database
-    vector_db = FAISS.from_documents(
-        chunks,
-        embeddings
-    )
+.subtitle {
+    font-size: 16px;
+    color: #9ca3af;
+    margin-bottom: 25px;
+}
 
-    # Remove temporary file
-    os.remove(file_path)
+.chat-box {
+    border-radius: 12px;
+}
 
-    return vector_db
-
+</style>
+""", unsafe_allow_html=True)
 
 # ============================================================
 # SESSION STATE
@@ -112,20 +73,19 @@ def create_vector_database(uploaded_file):
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "vector_db" not in st.session_state:
-    st.session_state.vector_db = None
-
-
 # ============================================================
-# USER INTERFACE
+# HEADER
 # ============================================================
 
-st.title("🤖 IntelliChat")
-
-st.write(
-    "An intelligent RAG-powered chatbot using GPT-OSS 20B."
+st.markdown(
+    '<div class="title">🤖 College Assistant Chatbot</div>',
+    unsafe_allow_html=True
 )
 
+st.markdown(
+    '<div class="subtitle">⚡ Powered by Groq</div>',
+    unsafe_allow_html=True
+)
 
 # ============================================================
 # SIDEBAR
@@ -133,140 +93,243 @@ st.write(
 
 with st.sidebar:
 
-    st.header("📚 Knowledge Base")
+    st.header("⚙️ Settings")
 
-    uploaded_file = st.file_uploader(
-        "Upload a PDF",
-        type=["pdf"]
+    # --------------------------------------------------------
+    # API KEY
+    # --------------------------------------------------------
+
+    api_key = st.text_input(
+        "Groq API Key",
+        type="password",
+        placeholder="gsk_..."
     )
 
-    if uploaded_file:
+    st.caption(
+        "Your API key is used only for this session."
+    )
 
-        if st.button("Process Document"):
+    st.divider()
 
-            with st.spinner("Processing document..."):
+    # --------------------------------------------------------
+    # TEMPERATURE
+    # --------------------------------------------------------
 
-                st.session_state.vector_db = (
-                    create_vector_database(uploaded_file)
-                )
+    temperature = st.slider(
+        "🌡️ Temperature",
+        min_value=0.0,
+        max_value=1.5,
+        value=0.7,
+        step=0.1
+    )
 
-            st.success("Document processed successfully!")
+    # --------------------------------------------------------
+    # REASONING
+    # --------------------------------------------------------
 
+    reasoning = st.selectbox(
+        "🧠 Reasoning Effort",
+        options=[
+            "low",
+            "medium",
+            "high"
+        ],
+        index=1
+    )
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # MODEL INFO
+    # --------------------------------------------------------
+
+    st.markdown("### 🧠 Model")
+
+    st.code(
+        "openai/gpt-oss-20b"
+    )
+
+    st.markdown("### ⚡ Provider")
+
+    st.write("Groq API")
+
+    st.markdown("### 💬 Type")
+
+    st.write("Normal AI Chatbot")
+
+    st.markdown("### 🧠 Memory")
+
+    st.write("Conversation History")
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # CLEAR CHAT
+    # --------------------------------------------------------
+
+    if st.button(
+        "🗑️ Clear Conversation",
+        use_container_width=True
+    ):
+        st.session_state.messages = []
+        st.rerun()
 
 # ============================================================
-# DISPLAY CHAT HISTORY
+# DISPLAY PREVIOUS MESSAGES
 # ============================================================
 
 for message in st.session_state.messages:
 
     with st.chat_message(message["role"]):
 
-        st.markdown(message["content"])
-
+        st.markdown(
+            message["content"]
+        )
 
 # ============================================================
 # CHAT INPUT
 # ============================================================
 
-user_input = st.chat_input(
-    "Ask IntelliChat something..."
+user_message = st.chat_input(
+    "Type your message..."
 )
 
+# ============================================================
+# PROCESS MESSAGE
+# ============================================================
 
-if user_input:
+if user_message:
+
+    # --------------------------------------------------------
+    # CHECK API KEY
+    # --------------------------------------------------------
+
+    if not api_key.strip():
+
+        st.error(
+            "⚠️ Please enter your Groq API key in the sidebar."
+        )
+
+        st.stop()
+
+    # --------------------------------------------------------
+    # ADD USER MESSAGE
+    # --------------------------------------------------------
+
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": user_message
+        }
+    )
 
     # Display user message
     with st.chat_message("user"):
-        st.markdown(user_input)
 
-    st.session_state.messages.append({
-        "role": "user",
-        "content": user_input
-    })
+        st.markdown(
+            user_message
+        )
 
+    # --------------------------------------------------------
+    # CREATE GROQ CLIENT
+    # --------------------------------------------------------
 
-    # ========================================================
-    # RAG RETRIEVAL
-    # ========================================================
+    try:
 
-    context = ""
+        client = Groq(
+            api_key=api_key.strip()
+        )
 
-    if st.session_state.vector_db is not None:
+        # ----------------------------------------------------
+        # BUILD MESSAGE HISTORY
+        # ----------------------------------------------------
 
-        with st.spinner("Searching the knowledge base..."):
+        messages = [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT
+            }
+        ]
 
-            retrieved_docs = (
-                st.session_state.vector_db
-                .similarity_search(
-                    user_input,
-                    k=4
+        for message in st.session_state.messages:
+
+            messages.append(
+                {
+                    "role": message["role"],
+                    "content": message["content"]
+                }
+            )
+
+        # ----------------------------------------------------
+        # ASSISTANT RESPONSE
+        # ----------------------------------------------------
+
+        with st.chat_message("assistant"):
+
+            response_placeholder = st.empty()
+
+            with st.spinner("Thinking..."):
+
+                response = client.chat.completions.create(
+
+                    model=MODEL,
+
+                    messages=messages,
+
+                    temperature=float(
+                        temperature
+                    ),
+
+                    reasoning_effort=reasoning,
+
+                    max_completion_tokens=4096
                 )
+
+                answer = (
+                    response.choices[0]
+                    .message
+                    .content
+                )
+
+                if not answer:
+
+                    answer = (
+                        "I couldn't generate a response."
+                    )
+
+            response_placeholder.markdown(
+                answer
             )
 
-            context = "\n\n".join(
-                doc.page_content
-                for doc in retrieved_docs
+        # ----------------------------------------------------
+        # SAVE ASSISTANT RESPONSE
+        # ----------------------------------------------------
+
+        st.session_state.messages.append(
+            {
+                "role": "assistant",
+                "content": answer
+            }
+        )
+
+    # --------------------------------------------------------
+    # ERROR HANDLING
+    # --------------------------------------------------------
+
+    except Exception as e:
+
+        error_message = (
+            "❌ Groq API Error\n\n"
+            f"{str(e)}"
+        )
+
+        with st.chat_message("assistant"):
+
+            st.error(
+                error_message
             )
 
+        # Remove the user message if request failed
+        if st.session_state.messages:
 
-    # ========================================================
-    # AUGMENT PROMPT WITH RETRIEVED CONTEXT
-    # ========================================================
-
-    if context:
-
-        user_prompt = f"""
-Use the following retrieved document context to answer
-the user's question.
-
----------------- DOCUMENT CONTEXT ----------------
-
-{context}
-
----------------- END CONTEXT ----------------
-
-User Question:
-{user_input}
-
-Answer using the provided context.
-"""
-
-    else:
-
-        user_prompt = user_input
-
-
-    # ========================================================
-    # GPT-OSS 20B RESPONSE
-    # ========================================================
-
-    with st.chat_message("assistant"):
-
-        with st.spinner("Thinking..."):
-
-            response = client.chat.completions.create(
-
-                model=MODEL,
-
-                messages=[
-                    {
-                        "role": "system",
-                        "content": SYSTEM_PROMPT
-                    },
-                    {
-                        "role": "user",
-                        "content": user_prompt
-                    }
-                ]
-            )
-
-            answer = response.choices[0].message.content
-
-        st.markdown(answer)
-
-
-    # Save response
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": answer
-    })
+            st.session_state.messages.pop()
